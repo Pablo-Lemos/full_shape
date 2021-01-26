@@ -8,8 +8,8 @@ To do:
 '''
 
 
-
-import numpy as np 
+import numpy as np
+from scipy.integrate import simps 
 import camb
 
 def get_growth_factor(results):
@@ -65,10 +65,14 @@ def get_anisotropic_pk(kh, pk, f, b1, sigma_v):
     mu_arr = np.linspace(0,1,1000)
     kaiser_arr = get_kaiser_factor(mu_arr, b1, f)
     fog_arr = get_fog_factor(kh, mu_arr, sigma_v, f)
-    Pg0 = fog_arr*kaiser_arr*pk[:,np.newaxis]
+    Pg0 = fog_arr*kaiser_arr*pk[:,:,np.newaxis]
     Pg2 = Pg0*get_legendre_2(mu_arr)
     Pg4 = Pg0*get_legendre_4(mu_arr)
-    P_theory_0 = np.trapz(Pg0, mu_arr, axis = -1)
-    P_theory_2 = np.trapz(Pg2, mu_arr, axis = -1)
-    P_theory_4 = np.trapz(Pg4, mu_arr, axis = -1)
+    P_theory_0 = simps(y = Pg0, x = mu_arr, axis = -1)
+    P_theory_2 = simps(y = Pg2, x = mu_arr, axis = -1)
+    P_theory_4 = simps(y = Pg4, x = mu_arr, axis = -1)
+ 
+    #P_theory_0 = np.trapz(Pg0, mu_arr, axis = -1)
+    #P_theory_2 = np.trapz(Pg2, mu_arr, axis = -1)
+    #P_theory_4 = np.trapz(Pg4, mu_arr, axis = -1)
     return P_theory_0, P_theory_2, P_theory_4
