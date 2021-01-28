@@ -27,5 +27,5 @@ if __name__ == '__main__':
 
     cwd = os.path.realpath(__file__)[:-25]
     np.save(cwd + '/simulated_data/k_bins', pk_calc.kh)
-    np.save(cwd + '/simulated_data/p0_noisy', pk_noisy)
+    np.save(cwd + '/simulated_data/pk_noisy', pk_noisy)
     np.save(cwd + './simulated_data/cov', cov)

@@ -7,7 +7,6 @@ Written by Pablo Lemos
 '''
 
 import numpy as np
-import camb
 from scipy.integrate import simps 
 from fullshape.smooth_pk import minimize_smooth_pk
 
@@ -47,6 +46,7 @@ class PK_Calculator:
                             omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
         ''' Generate a CAMB instance, and use it to calculate the growth 
         parameter f, and a power spectrum interpolator '''
+        import camb
 
         pars = camb.CAMBparams()
         pars.set_cosmology(H0=H0, ombh2=ombh2, omch2=omch2, mnu=mnu, omk=omk, 

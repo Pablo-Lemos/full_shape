@@ -1,0 +1,48 @@
+zs: [0]
+k_bins_file: simulated_data/k_bins.npy
+pk_data_file: simulated_data/pk_noisy.npy
+pk_cov_file: simulated_data/cov.npy
+
+# Aliases for automatic covariance matrix
+aliases: [fullshape]
+
+params:
+  sigma_per:
+    prior:
+      dist: uniform
+      min: 0
+      max: 100
+    ref:
+      dist: norm
+      loc: 10
+      scale: 1
+    proposal: 0.1
+    latex: '\sigma_{\perp}'
+
+  sigma_par:
+    prior:
+      dist: uniform
+      min: 0
+      max: 100
+    ref:
+      dist: norm
+      loc: 10
+      scale: 1
+    proposal: 0.1
+    latex: '\sigma_{\parallel}'
+
+  b1:
+    prior:
+      dist: uniform
+      min: 0.1
+      max: 5
+    ref:
+      dist: norm
+      loc: 2
+      scale: 1
+    proposal: 0.1
+    latex: 'b_1'
+
+  sigma_v: 0.
+
+    
