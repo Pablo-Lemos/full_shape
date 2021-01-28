@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
+''' Generate a noisy power spectrum, and store it '''
+
 import numpy as np
+import os
 from pk_full_shape import *
 
 if __name__ == '__main__':
@@ -16,3 +20,7 @@ if __name__ == '__main__':
 
     # Generate a noisy realisation
     pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4, vol = 1e9)
+
+    cwd = os.path.realpath(__file__)[:-25]
+    np.save(cwd + '/simulated_data/p0_noisy', pk_noisy)
+    np.save(cwd + './simulated_data/cov', cov)
