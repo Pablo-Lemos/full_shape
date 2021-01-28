@@ -21,19 +21,29 @@ class PK_Calculator:
         The arrays have dimensions [z, k, mu]
         '''
 
+        self.zs = np.sort(zs)
+        if self.zs != zs:
+            print('Redshifts have been sorted in increasing order')
+
         pars = camb.CAMBparams()
         pars.set_cosmology(H0=H0, ombh2=ombh2, omch2=omch2, mnu=mnu, omk=omk, 
                         tau=tau)
         pars.InitPower.set_params(As=As, ns=ns, r=0)
 
-        pars.set_matter_power(redshifts=zs, kmax=2.0)
+        pars.set_matter_power(redshifts=self.zs, kmax=2.0)
         pars.NonLinear = camb.model.NonLinear_none
         self.results = camb.get_results(pars)
         self.f = self.results.get_fsigma8()/self.results.get_sigma8()[0]
-        self.kh, self.zs, pk = self.results.get_matter_power_spectrum(
-                             minkh=minkh, maxkh=maxkh, npoints = num_k)
-        
+        #self.kh, self.zs, pk = self.results.get_matter_power_spectrum(
+        #                     minkh=minkh, maxkh=maxkh, npoints = num_k)
+
+        PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
+            kmax=maxkh, zmax=max([0.01,self.zs[-1]]))
+
+        self.kh = np.linspace(minkh, maxkh, num_k)        
         self.mu = np.linspace(0, 1, num_mu)
+        pk = PK.P(self.zs, self.kh)
+
         # Reshape pk into [z,k,mu] shape
         self.pk_camb = pk[:,:,np.newaxis]
 
@@ -71,12 +81,13 @@ class PK_Calculator:
         kaiser = self.kaiser_factor(b1)
         fog = self.fog_factor(sigma_v)
         
-        if len(self.kh)>=200:
-            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
-        else: 
-            print('Anisotropic BAO damping only works  with num_k of t least 200, so it is not being added.')
-            self.Pmu = self.pk_camb
-
+        #if len(self.kh)>=200:
+            #self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
+        #else: 
+            #print('Anisotropic BAO damping only works  with num_k of t least 200, so it is not being added.')
+            #self.Pmu = self.pk_camb
+        
+        self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
         self.Pmu = fog*kaiser*self.Pmu
         Pmu0 = self.Pmu
         Pmu2 = self.Pmu*get_legendre_2(self.mu)
@@ -95,3 +106,49 @@ class PK_Calculator:
         else:
             print("Integration must be either 'Simps' or 'Trapz' ")
             raise
+
+    def generate_noisy(self, nave, vol, integration = 'Simps'):
+        if self.Pmu is None:
+            print('You must generate an anisotropic power spectrum first')
+            print("Use 'get_anisotropic_pk'")
+
+        num_k = len(self.kh)
+        num_z = len(self.zs)
+        num_mu = len(self.mu)        
+
+        # Calculate k_min and k_max, the edges of the k bins
+        dk = self.kh[1] - self.kh[0]
+        k_edges = np.concatenate([[self.kh[0] - dk/2.], self.kh + dk/2.])
+        k_max = k_edges[1:]
+        k_min = k_edges[:-1]
+
+        l0 = self.mu
+        l2 = get_legendre_2(l0)
+        l4 = get_legendre_4(l0)
+        leg = np.stack([l0, l2, l4])
+
+        pk_noisy = np.stack([self.p0, self.p2, self.p4])
+        cov = np.empty([num_z, 3*num_k, 3*num_k])
+
+        for z in range(num_z):
+            for i in range(3):
+                for j in range(3):
+                    f = (self.Pmu[z] + 1/nave)**2*leg[i]*leg[j]
+
+                    if integration == 'Simps':
+                        res = simps(y = f, x = self.mu, axis = -1)
+                    elif integration == 'Trapz':
+                        res = np.trapz(y = f, x = self.mu, axis = -1)
+                    else:
+                        print("Integration must be either 'Simps' or 'Trapz' ")
+                        raise
+
+                    k_vol = 2*np.pi/3.*(k_max**3. - k_min**3)*vol/(2*np.pi)**3.
+                    cov[z, i*num_k:(i+1)*num_k,j*num_k:(j+1)*num_k] = res/k_vol*np.identity(num_k)
+
+                    if i == j:
+                        pk_noisy[i, z] += np.random.multivariate_normal(np.zeros(num_k), res/k_vol*np.identity(num_k))
+
+        return pk_noisy, cov
+
+    
