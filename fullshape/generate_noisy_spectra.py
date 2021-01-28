@@ -3,7 +3,7 @@
 
 import numpy as np
 import os
-from pk_full_shape import *
+from fullshape.pk_full_shape import *
 
 if __name__ == '__main__':
     # Define value of nuisance parameters

@@ -1,8 +1,15 @@
+# -*- coding: utf-8 -*-
+''' 
+This module performs full shape power spectrum calculations. 
+
+Written by Pablo Lemos 
+28-01-2020
+'''
+
 import numpy as np
 import camb
 from scipy.integrate import simps 
-import sys
-from smooth_pk import minimize_smooth_pk
+from fullshape.smooth_pk import minimize_smooth_pk
 
 def get_legendre_2(x):
     ''' Returns the second order Legendre polynomial'''
@@ -13,13 +20,23 @@ def get_legendre_4(x):
     return (1/8.)*(35.*x**4-30*x**2.+3)
 
 class PK_Calculator:
+    """
+    A class to perform full shape calculations and generate noisy realizations
+    """
+
     def __init__(self, zs = [0.], minkh=1e-4, maxkh = 1, num_k = 200, num_mu = 1000, 
                             As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
                             omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
-        ''' The initial function generates the camb pk
+        """
+        The initial function. Given a list of redshifts, a k range, and cosmological
+        parameters, it does the following:
         
-        The arrays have dimensions [z, k, mu]
-        '''
+        - Calculate the growth factor f
+        - Generate linearly separated arrays for kh and mu
+        - Generate a power spectrum from CAMB and evaluate it at kh
+        
+        Arrays in this class are aranged to take the shape [z, k, mu]
+        """
 
         self.zs = np.sort(zs)
         if self.zs != zs:
@@ -31,7 +48,7 @@ class PK_Calculator:
         pars.InitPower.set_params(As=As, ns=ns, r=0)
 
         pars.set_matter_power(redshifts=self.zs, kmax=2.0)
-        pars.NonLinear = camb.model.NonLinear_none
+        #pars.NonLinear = camb.model.NonLinear_none
         self.results = camb.get_results(pars)
         self.f = self.results.get_fsigma8()/self.results.get_sigma8()[0]
         #self.kh, self.zs, pk = self.results.get_matter_power_spectrum(
@@ -60,12 +77,14 @@ class PK_Calculator:
         return np.exp(-(logfog)**2.)
 
     def calculate_BAO_damping(self, sigma_per, sigma_par, b1):
+        ''' Calculate the BAO damping factor'''
         mu = np.reshape(self.mu, [1,1,-1])
         k = np.reshape(self.kh, [1,-1,1])
         logdamp = k**2/2*(mu**2*sigma_par**2 + (1 - mu**2)*sigma_per**2)
         return np.exp(-logdamp)
 
     def add_BAO_damping(self, sigma_per, sigma_par, b1):
+        ''' Add BAO damping to a CAMB power sectrum'''
         ps = np.empty([len(self.zs), len(self.kh), 1])
         for (i,pk) in enumerate(self.pk_camb[:,:,0]):
             ps[i, :, 0] = minimize_smooth_pk(self.kh, pk)
@@ -80,12 +99,6 @@ class PK_Calculator:
 
         kaiser = self.kaiser_factor(b1)
         fog = self.fog_factor(sigma_v)
-        
-        #if len(self.kh)>=200:
-            #self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
-        #else: 
-            #print('Anisotropic BAO damping only works  with num_k of t least 200, so it is not being added.')
-            #self.Pmu = self.pk_camb
         
         self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
         self.Pmu = fog*kaiser*self.Pmu
@@ -108,6 +121,9 @@ class PK_Calculator:
             raise
 
     def generate_noisy(self, nave, vol, integration = 'Simps'):
+        ''' Generate a noisy realization of the anisotropic power spectrum. 
+        Returns a power spectrum and covariance. '''
+
         if self.Pmu is None:
             print('You must generate an anisotropic power spectrum first')
             print("Use 'get_anisotropic_pk'")
