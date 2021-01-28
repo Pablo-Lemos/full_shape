@@ -24,9 +24,7 @@ class PK_Calculator:
     A class to perform full shape calculations and generate noisy realizations
     """
 
-    def __init__(self, zs = [0.], minkh=1e-4, maxkh = 1, num_k = 200, num_mu = 1000, 
-                            As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
-                            omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
+    def __init__(self, zs = [0.], minkh=1e-4, maxkh = 1, num_k = 200, num_mu = 1000):
         """
         The initial function. Given a list of redshifts, a k range, and cosmological
         parameters, it does the following:
@@ -42,28 +40,25 @@ class PK_Calculator:
         if self.zs != zs:
             print('Redshifts have been sorted in increasing order')
 
+        self.kh = np.linspace(minkh, maxkh, num_k)        
+        self.mu = np.linspace(0, 1, num_mu)
+
+    def set_cosmology(self, As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
+                            omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
+        ''' Generate a CAMB instance, and use it to calculate the growth 
+        parameter f, and a power spectrum interpolator '''
+
         pars = camb.CAMBparams()
         pars.set_cosmology(H0=H0, ombh2=ombh2, omch2=omch2, mnu=mnu, omk=omk, 
                         tau=tau)
         pars.InitPower.set_params(As=As, ns=ns, r=0)
 
         pars.set_matter_power(redshifts=self.zs, kmax=2.0)
-        #pars.NonLinear = camb.model.NonLinear_none
-        self.results = camb.get_results(pars)
-        self.f = self.results.get_fsigma8()/self.results.get_sigma8()[0]
-        #self.kh, self.zs, pk = self.results.get_matter_power_spectrum(
-        #                     minkh=minkh, maxkh=maxkh, npoints = num_k)
+        results = camb.get_results(pars)
+        self.f = results.get_fsigma8()/results.get_sigma8()[0]
 
-        PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
-            kmax=maxkh, zmax=max([0.01,self.zs[-1]]))
-
-        self.kh = np.linspace(minkh, maxkh, num_k)        
-        self.mu = np.linspace(0, 1, num_mu)
-        pk = PK.P(self.zs, self.kh)
-
-        # Reshape pk into [z,k,mu] shape
-        self.pk_camb = pk[:,:,np.newaxis]
-
+        self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
+            kmax=self.kh[-1], zmax=max([0.01,self.zs[-1]]))
 
     def kaiser_factor(self, b1):
         ''' Calculate the Kaiser factor'''
@@ -97,6 +92,15 @@ class PK_Calculator:
     def get_anisotropic_pk(self, sigma_per, sigma_par, b1, sigma_v, integration = 'Simps'):
         ''' Returns anisotropic power spectra, with dimensions [redshift, k]'''
 
+        # Generate a CAMB pk, and reshape it into [z,k,mu] shape
+        try:
+            pk = self.PK.P(self.zs, self.kh)
+            self.pk_camb = pk[:,:,np.newaxis]
+        except:
+            print('You must generate a CAMB power spectrum interpolator first. ')
+            print("Use 'set cosmology'")
+            raise
+
         kaiser = self.kaiser_factor(b1)
         fog = self.fog_factor(sigma_v)
         
@@ -124,9 +128,12 @@ class PK_Calculator:
         ''' Generate a noisy realization of the anisotropic power spectrum. 
         Returns a power spectrum and covariance. '''
 
-        if self.Pmu is None:
+        try: 
+            self.Pmu
+        except:
             print('You must generate an anisotropic power spectrum first')
             print("Use 'get_anisotropic_pk'")
+            raise
 
         num_k = len(self.kh)
         num_z = len(self.zs)

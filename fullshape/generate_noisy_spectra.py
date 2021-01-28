@@ -15,6 +15,10 @@ if __name__ == '__main__':
     # Initiate anisotropic pk calculator
     pk_calc = PK_Calculator(minkh=1e-5, maxkh = 0.5, num_k = 50)
 
+    # Set a cosmology
+    pk_calc.set_cosmology(As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
+                                omch2=0.1188, mnu=0.06, omk=0, tau=0.06)
+
     # Calculate anisotropic pk
     pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v)
 
@@ -22,5 +26,6 @@ if __name__ == '__main__':
     pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4, vol = 1e9)
 
     cwd = os.path.realpath(__file__)[:-25]
+    np.save(cwd + '/simulated_data/k_bins', pk_calc.kh)
     np.save(cwd + '/simulated_data/p0_noisy', pk_noisy)
     np.save(cwd + './simulated_data/cov', cov)
