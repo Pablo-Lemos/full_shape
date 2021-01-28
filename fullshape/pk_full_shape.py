@@ -13,7 +13,7 @@ def get_legendre_4(x):
     return (1/8.)*(35.*x**4-30*x**2.+3)
 
 class PK_Calculator:
-    def __init__(self, zs = [0.], minkh=5e-5, maxkh = 1, num_k = 200, num_mu = 1000, 
+    def __init__(self, zs = [0.], minkh=1e-4, maxkh = 1, num_k = 200, num_mu = 1000, 
                             As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
                             omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
         ''' The initial function generates the camb pk
@@ -71,10 +71,16 @@ class PK_Calculator:
         kaiser = self.kaiser_factor(b1)
         fog = self.fog_factor(sigma_v)
         
-        Pmu0 = self.add_BAO_damping(sigma_per, sigma_par, b1)
-        Pmu0 = fog*kaiser*Pmu0
-        Pmu2 = Pmu0*get_legendre_2(self.mu)
-        Pmu4 = Pmu0*get_legendre_4(self.mu)
+        if len(self.kh)>=200:
+            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
+        else: 
+            print('Anisotropic BAO damping only works  with num_k of t least 200, so it is not being added.')
+            self.Pmu = self.pk_camb
+
+        self.Pmu = fog*kaiser*self.Pmu
+        Pmu0 = self.Pmu
+        Pmu2 = self.Pmu*get_legendre_2(self.mu)
+        Pmu4 = self.Pmu*get_legendre_4(self.mu)
 
         if integration == 'Simps':
             self.p0 = simps(y = Pmu0, x = self.mu, axis = -1)
@@ -89,5 +95,3 @@ class PK_Calculator:
         else:
             print("Integration must be either 'Simps' or 'Trapz' ")
             raise
-
-        

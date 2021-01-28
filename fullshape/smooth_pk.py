@@ -23,7 +23,7 @@ def get_chisq_smooth_pk(k, pk, pars):
 def minimize_smooth_pk(k, pk):
     chi2 = lambda params: get_chisq_smooth_pk(k, pk, params) 
     initial_guess = [0.6, 60000, 0.1, 0., 0.]
-    result = optimize.minimize(chi2, initial_guess)
+    result = optimize.minimize(chi2, initial_guess)#, method='Nelder-Mead', tol=1e-8)
     best_pars = result.x
     smooth_pk = get_smooth_pk(k, best_pars)
     return smooth_pk
