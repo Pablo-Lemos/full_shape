@@ -1,4 +1,8 @@
-zs: [0]
+path: null
+
+l_max: null
+
+zs: [0.]
 k_bins_file: simulated_data/k_bins.npy
 pk_data_file: simulated_data/pk_noisy.npy
 pk_cov_file: simulated_data/cov.npy

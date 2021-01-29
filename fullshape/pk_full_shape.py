@@ -36,8 +36,8 @@ class PK_Calculator:
         """
 
         self.zs = np.sort(zs)
-        if self.zs != zs:
-            print('Redshifts have been sorted in increasing order')
+        #if self.zs != zs:
+        #    print('Redshifts have been sorted in increasing order')
 
         self.kh = np.linspace(minkh, maxkh, num_k)        
         self.mu = np.linspace(0, 1, num_mu)

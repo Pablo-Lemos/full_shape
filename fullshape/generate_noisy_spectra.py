@@ -13,7 +13,7 @@ if __name__ == '__main__':
     sigma_par = 10.
 
     # Initiate anisotropic pk calculator
-    pk_calc = PK_Calculator(minkh=1e-5, maxkh = 0.5, num_k = 50)
+    pk_calc = PK_Calculator(minkh=1e-4, maxkh = 0.5, num_k = 50)
 
     # Set a cosmology
     pk_calc.set_cosmology(As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
