@@ -25,8 +25,7 @@ class FullShapeLikelihood(Likelihood):
         zmax = max(0.1, max(self.zs))
         zarr = np.linspace(0, zmax, 50)
 
-        return {"H0": None,
-            "omegam": None,
+        return {
             "Pk_interpolator": {
                 "z": zarr, "k_max": self.k_bins[-1], "nonlinear": False,
                 "vars_pairs": ([("delta_tot", "delta_tot")])},
@@ -51,5 +50,6 @@ class FullShapeLikelihood(Likelihood):
             delta = self.pk_data[z] - pk_theory[z]
             chi2 += self.invcov[z].dot(delta).dot(delta)
 
+        #print(-0.5*chi2#)
         return -0.5*chi2     
 

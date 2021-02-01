@@ -11,7 +11,11 @@ def generate_pk(k, pars):
     ''' Generate an approximate pk given k range and parameters'''
     keq, A, a0, a2, a4 = pars
     q = k/keq
-    L = np.log(2*np.exp(1) + 1.8*q)
+    x = 2*np.exp(1) + 1.8*q
+    if min(x) >= 0:
+        L = np.log(2*np.exp(1) + 1.8*q)
+    else:
+        L = -1e100
     C = 14.2 + 731.0/(1 + 62.5*q)
     T = L/(L + C*q**2)
     return A*(T**2 *k + a0 + a2*k**2 + a4*k**4)
