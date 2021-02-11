@@ -41,7 +41,7 @@ class FullShapeLikelihood(Likelihood):
         b1 = params_values['b1']
         sigma_v = params_values['sigma_v']
 
-        self.pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v)
+        self.pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v, bao_damping = False)
         pk_theory = np.concatenate(
             [self.pk_calc.p0, self.pk_calc.p2, self.pk_calc.p4], axis = -1)
 

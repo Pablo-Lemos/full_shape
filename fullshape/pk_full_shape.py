@@ -89,7 +89,7 @@ class PK_Calculator:
         pnl *= bao_damp_factor
         return pnl + ps
 
-    def get_anisotropic_pk(self, sigma_per, sigma_par, b1, sigma_v, integration = 'Simps'):
+    def get_anisotropic_pk(self, sigma_per, sigma_par, b1, sigma_v, bao_damping = True, integration = 'Simps'):
         ''' Returns anisotropic power spectra, with dimensions [redshift, k]'''
 
         # Generate a CAMB pk, and reshape it into [z,k,mu] shape
@@ -104,7 +104,10 @@ class PK_Calculator:
         kaiser = self.kaiser_factor(b1)
         fog = self.fog_factor(sigma_v)
         
-        self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
+        if bao_damping:
+            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
+        else:
+            self.Pmu = self.pk_camb
         self.Pmu = fog*kaiser*self.Pmu
         Pmu0 = self.Pmu
         Pmu2 = self.Pmu*get_legendre_2(self.mu)
