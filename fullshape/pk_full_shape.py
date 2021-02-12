@@ -23,7 +23,7 @@ class PK_Calculator:
     A class to perform full shape calculations and generate noisy realizations
     """
 
-    def __init__(self, zs = [0.], minkh=1e-4, maxkh = 1, num_k = 200, num_mu = 1000):
+    def __init__(self, zs = [0.], mink=1e-4, maxk = 1, num_k = 200, num_mu = 1000, hunits = False):
         """
         The initial function. Given a list of redshifts, a k range, and cosmological
         parameters, it does the following:
@@ -39,8 +39,9 @@ class PK_Calculator:
         #if self.zs != zs:
         #    print('Redshifts have been sorted in increasing order')
 
-        self.kh = np.linspace(minkh, maxkh, num_k)        
+        self.k = np.linspace(mink, maxk, num_k)        
         self.mu = np.linspace(0, 1, num_mu)
+        self.hunits = hunits
 
     def set_cosmology(self, As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 
                             omch2=0.1188, mnu=0.06, omk=0, tau=0.06):
@@ -55,34 +56,44 @@ class PK_Calculator:
 
         pars.set_matter_power(redshifts=self.zs, kmax=2.0)
         results = camb.get_results(pars)
+        #print(results.get_fsigma8(),results.get_sigma8())
         self.f = results.get_fsigma8()/results.get_sigma8()[0]
 
-        self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
-            kmax=self.kh[-1], zmax=max([0.01,self.zs[-1]]))
+        if self.hunits:
+            self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
+                kmax=self.k[-1], zmax=max([0.01,self.zs[-1]]), hubble_units = True, 
+                k_hunit = True)
+        else:
+            self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
+                kmax=self.k[-1], zmax=max([0.01,self.zs[-1]]), hubble_units = False, 
+                k_hunit = False)
+
 
     def kaiser_factor(self, b1):
         ''' Calculate the Kaiser factor'''
+        # Needs correcting as there should be redshift dependence on f
         kaiser = (b1+np.outer(self.f,self.mu**2))**2.
         return kaiser[:,np.newaxis, :]
 
     def fog_factor(self, sigma_v):
         ''' Calculate the Fingers of God factor'''
-        temp = sigma_v*np.outer(self.kh, self.mu)
+        # Needs correcting as there should be redshift dependence on f
+        temp = sigma_v*np.outer(self.k, self.mu)
         logfog = np.einsum('i, jk -> ijk', self.f, temp)
         return np.exp(-(logfog)**2.)
 
     def calculate_BAO_damping(self, sigma_per, sigma_par, b1):
         ''' Calculate the BAO damping factor'''
         mu = np.reshape(self.mu, [1,1,-1])
-        k = np.reshape(self.kh, [1,-1,1])
+        k = np.reshape(self.k, [1,-1,1])
         logdamp = k**2/2*(mu**2*sigma_par**2 + (1 - mu**2)*sigma_per**2)
         return np.exp(-logdamp)
 
     def add_BAO_damping(self, sigma_per, sigma_par, b1):
         ''' Add BAO damping to a CAMB power sectrum'''
-        ps = np.empty([len(self.zs), len(self.kh), 1])
+        ps = np.empty([len(self.zs), len(self.k), 1])
         for (i,pk) in enumerate(self.pk_camb[:,:,0]):
-            ps[i, :, 0] = minimize_smooth_pk(self.kh, pk)
+            ps[i, :, 0] = minimize_smooth_pk(self.k, pk)
         pnl = self.pk_camb - ps
         bao_damp_factor = self.calculate_BAO_damping(sigma_per, sigma_par, b1)
         pnl = np.einsum('ijk, ijk -> ijk', pnl, bao_damp_factor)
@@ -94,7 +105,7 @@ class PK_Calculator:
 
         # Generate a CAMB pk, and reshape it into [z,k,mu] shape
         try:
-            pk = self.PK.P(self.zs, self.kh)
+            pk = self.PK.P(self.zs, self.k)
             self.pk_camb = pk[:,:,np.newaxis]
         except:
             print('You must generate a CAMB power spectrum interpolator first. ')
@@ -138,13 +149,13 @@ class PK_Calculator:
             print("Use 'get_anisotropic_pk'")
             raise
 
-        num_k = len(self.kh)
+        num_k = len(self.k)
         num_z = len(self.zs)
         num_mu = len(self.mu)        
 
         # Calculate k_min and k_max, the edges of the k bins
-        dk = self.kh[1] - self.kh[0]
-        k_edges = np.concatenate([[self.kh[0] - dk/2.], self.kh + dk/2.])
+        dk = self.k[1] - self.k[0]
+        k_edges = np.concatenate([[self.k[0] - dk/2.], self.k + dk/2.])
         k_max = k_edges[1:]
         k_min = k_edges[:-1]
 

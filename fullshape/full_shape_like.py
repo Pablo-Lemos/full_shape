@@ -13,11 +13,10 @@ class FullShapeLikelihood(Likelihood):
         self.invcov = np.linalg.inv(pk_cov)
 
         # Create a datavector with dimensions [z, k], where the k has 
-        # a concatenation of p0, p2, p4
         self.pk_data = np.concatenate([p0, p2, p4], axis = -1)
 
-        self.pk_calc = PK_Calculator(zs = self.zs, minkh=self.k_bins[0], 
-                            maxkh = self.k_bins[-1], num_k = len(self.k_bins))
+        self.pk_calc = PK_Calculator(zs = self.zs, mink=self.k_bins[0], 
+                            maxk = self.k_bins[-1], num_k = len(self.k_bins), hunits = False)
     
     def get_requirements(self):
 
@@ -30,26 +29,35 @@ class FullShapeLikelihood(Likelihood):
                 "z": zarr, "k_max": self.k_bins[-1], "nonlinear": False,
                 "vars_pairs": ([("delta_tot", "delta_tot")])},
                 "fsigma8": {"z": self.zs},
-                "sigma_R": {"z": self.zs, "R": 8}
+                "sigma8z": {"z": self.zs},
+                #'H0': None
+               #"sigma_R": {"z": self.zs, "R": 8},
         }
 
     def logp(self, **params_values):
-        self.pk_calc.f = self.provider.get_fsigma8(self.zs)/self.provider.get_sigma_R()[2][0]
-        self.pk_calc.PK = self.provider.get_Pk_interpolator(("delta_tot", "delta_tot"), nonlinear = False)
+        #H0_theory = self.provider.get_param("H0")
+        #h_theory = H0_theory/100.
+        #print(self.provider.get_fsigma8(self.zs), self.provider.get_sigma8z(self.zs))
+        self.pk_calc.f = self.provider.get_fsigma8(self.zs)/self.provider.get_sigma8z(self.zs)
+        self.pk_calc.PK = self.provider.get_Pk_interpolator(("delta_tot", "delta_tot"), nonlinear = False)      
         sigma_per = params_values['sigma_per']
         sigma_par = params_values['sigma_par']
         b1 = params_values['b1']
         sigma_v = params_values['sigma_v']
 
+        #print(self.provider.get_fsigma8(self.zs), self.provider.get_sigma_R(), self.provider.get_sigma8z(self.zs))
         self.pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v, bao_damping = False)
         pk_theory = np.concatenate(
             [self.pk_calc.p0, self.pk_calc.p2, self.pk_calc.p4], axis = -1)
+        
+        #pk_theory*=h_theory**3.
 
         chi2 = 0.0
         for z in range(len(self.zs)):
+            #print(self.pk_data)
+            #print(pk_theory)
             delta = self.pk_data[z] - pk_theory[z]
             chi2 += self.invcov[z].dot(delta).dot(delta)
 
-        #print(-0.5*chi2#)
         return -0.5*chi2     
 
