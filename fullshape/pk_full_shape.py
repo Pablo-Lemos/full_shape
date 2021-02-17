@@ -175,6 +175,12 @@ class PK_Calculator:
         num_z = len(self.zs)
         num_mu = len(self.mu)        
 
+        if (isinstance(vol, float) or isinstance(vol, int)) and num_z > 1:
+            # Using same volume for all redshift bins (wrong)
+            print("WARNING: You are using the same volume for all tomographic' \
+                 'bins, you should use an array or list for 'vol'. ")
+            vol = vol*np.ones(num_z)
+
         # Calculate k_min and k_max, the edges of the k bins
         dk = self.k[1] - self.k[0]
         k_edges = np.concatenate([[self.k[0] - dk/2.], self.k + dk/2.])
@@ -202,7 +208,7 @@ class PK_Calculator:
                         print("Integration must be either 'Simps' or 'Trapz' ")
                         raise
 
-                    k_vol = 2*np.pi/3.*(k_max**3. - k_min**3)*vol/(2*np.pi)**3.
+                    k_vol = 2*np.pi/3.*(k_max**3. - k_min**3)*vol[z]/(2*np.pi)**3.
                     cov[z, i*num_k:(i+1)*num_k,j*num_k:(j+1)*num_k] = res/k_vol*np.identity(num_k)
 
                     if i == j:
