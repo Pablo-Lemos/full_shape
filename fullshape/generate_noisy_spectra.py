@@ -22,7 +22,7 @@ if __name__ == '__main__':
                                 omch2=0.1188, mnu=0.06, omk=0, tau=0.06)
 
     # Calculate anisotropic pk
-    pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v,  bao_damping = False)
+    pk_calc.get_anisotropic_pk(b1, sigma_v,  bao_damping = False)
 
     # Generate a noisy realisation
     pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4, vol = 1e9)

@@ -11,30 +11,6 @@ pk_cov_file: simulated_data/cov.npy
 aliases: [fullshape]
 
 params:
-  sigma_per:
-    prior:
-      dist: uniform
-      min: 0
-      max: 100
-    ref:
-      dist: norm
-      loc: 10
-      scale: 1
-    proposal: 0.1
-    latex: '\sigma_{\perp}'
-
-  sigma_par:
-    prior:
-      dist: uniform
-      min: 0
-      max: 100
-    ref:
-      dist: norm
-      loc: 10
-      scale: 1
-    proposal: 0.1
-    latex: '\sigma_{\parallel}'
-
   b1:
     prior:
       dist: uniform

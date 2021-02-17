@@ -40,13 +40,11 @@ class FullShapeLikelihood(Likelihood):
         #print(self.provider.get_fsigma8(self.zs), self.provider.get_sigma8z(self.zs))
         self.pk_calc.f = self.provider.get_fsigma8(self.zs)/self.provider.get_sigma8z(self.zs)
         self.pk_calc.PK = self.provider.get_Pk_interpolator(("delta_tot", "delta_tot"), nonlinear = False)      
-        sigma_per = params_values['sigma_per']
-        sigma_par = params_values['sigma_par']
         b1 = params_values['b1']
         sigma_v = params_values['sigma_v']
 
         #print(self.provider.get_fsigma8(self.zs), self.provider.get_sigma_R(), self.provider.get_sigma8z(self.zs))
-        self.pk_calc.get_anisotropic_pk(sigma_per, sigma_par, b1, sigma_v, bao_damping = False)
+        self.pk_calc.get_anisotropic_pk(b1, sigma_v, bao_damping = True)
         pk_theory = np.concatenate(
             [self.pk_calc.p0, self.pk_calc.p2, self.pk_calc.p4], axis = -1)
         
