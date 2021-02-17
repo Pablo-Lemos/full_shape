@@ -84,38 +84,41 @@ class PK_Calculator:
         return D2**0.5
 
 
-    def kaiser_factor(self, b1):
+    def kaiser_factor(self, bias):
         ''' Calculate the Kaiser factor'''
-        # Needs correcting as there should be redshift dependence on f
-        kaiser = (b1+np.outer(self.f,self.mu**2))**2.
+        if isinstance(bias, float) or isinstance(bias, int):
+            # Using a single bias for all redshift bins
+            kaiser = (bias+np.outer(self.f,self.mu**2))**2.
+        else:
+            # Using a bias parameter for each redshift
+            kaiser[:,np.newaxis] = (bias+np.outer(self.f,self.mu**2))**2.
         return kaiser[:,np.newaxis, :]
 
     def fog_factor(self, sigma_v):
         ''' Calculate the Fingers of God factor'''
-        # Needs correcting as there should be redshift dependence on f
         temp = sigma_v*np.outer(self.k, self.mu)
         logfog = np.einsum('i, jk -> ijk', self.f, temp)
         return np.exp(-(logfog)**2.)
 
-    def calculate_BAO_damping(self, sigma_per, sigma_par, b1):
+    def calculate_BAO_damping(self, sigma_per, sigma_par):
         ''' Calculate the BAO damping factor'''
         mu = np.reshape(self.mu, [1,1,-1])
         k = np.reshape(self.k, [1,-1,1])
         logdamp = k**2/2*(mu**2*sigma_par**2 + (1 - mu**2)*sigma_per**2)
         return np.exp(-logdamp)
 
-    def add_BAO_damping(self, sigma_per, sigma_par, b1):
+    def add_BAO_damping(self, sigma_per, sigma_par):
         ''' Add BAO damping to a CAMB power sectrum'''
         ps = np.empty([len(self.zs), len(self.k), 1])
         for (i,pk) in enumerate(self.pk_camb[:,:,0]):
             ps[i, :, 0] = minimize_smooth_pk(self.k, pk)
         pnl = self.pk_camb - ps
-        bao_damp_factor = self.calculate_BAO_damping(sigma_per, sigma_par, b1)
+        bao_damp_factor = self.calculate_BAO_damping(sigma_per, sigma_par)
         pnl = np.einsum('ijk, ijk -> ijk', pnl, bao_damp_factor)
         pnl *= bao_damp_factor
         return pnl + ps
 
-    def get_anisotropic_pk(self, b1, sigma_v, bao_damping = True, integration = 'Simps'):
+    def get_anisotropic_pk(self, bias, sigma_v, bao_damping = True, integration = 'Simps'):
         ''' Returns anisotropic power spectra, with dimensions [redshift, k]'''
 
         # Generate a CAMB pk, and reshape it into [z,k,mu] shape
@@ -127,7 +130,7 @@ class PK_Calculator:
             print("Use 'set cosmology'")
             raise
 
-        kaiser = self.kaiser_factor(b1)
+        kaiser = self.kaiser_factor(bias)
         fog = self.fog_factor(sigma_v)
         
         if bao_damping:
@@ -135,7 +138,7 @@ class PK_Calculator:
             D = self.growth_factor()
             sigma_per = 9.4*self.sigma8/0.9*D
             sigma_par = (1 + self.f)*sigma_per
-            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
+            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par)
         else:
             self.Pmu = self.pk_camb
         self.Pmu = fog*kaiser*self.Pmu
