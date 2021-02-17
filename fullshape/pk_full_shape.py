@@ -58,15 +58,30 @@ class PK_Calculator:
         results = camb.get_results(pars)
         #print(results.get_fsigma8(),results.get_sigma8())
         self.f = results.get_fsigma8()/results.get_sigma8()[0]
+        self.sigma8 = results.get_sigma8_0()
 
         if self.hunits:
             self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
-                kmax=self.k[-1], zmax=max([0.01,self.zs[-1]]), hubble_units = True, 
+                kmax=self.k[-1], zmax=max([0.,self.zs[-1]]), hubble_units = True, 
                 k_hunit = True)
         else:
             self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
-                kmax=self.k[-1], zmax=max([0.01,self.zs[-1]]), hubble_units = False, 
+                kmax=self.k[-1], zmax=max([0.,self.zs[-1]]), hubble_units = False, 
                 k_hunit = False)
+
+    def growth_factor(self):
+        ''' Calculate the growth factor D(a) '''
+        #TODO If I ever add nonlinear corrections in Planck, make sure they are not used here!
+        try:
+            pk = self.PK.P(self.zs, self.k)
+        except:
+            print('You must generate a CAMB power spectrum interpolator first. ')
+            print("Use 'set cosmology'")
+            raise
+
+        pk0 = self.PK.P(0, self.k)       
+        D2 = np.mean(pk/pk0, axis = -1)
+        return D2**0.5
 
 
     def kaiser_factor(self, b1):
@@ -100,7 +115,7 @@ class PK_Calculator:
         pnl *= bao_damp_factor
         return pnl + ps
 
-    def get_anisotropic_pk(self, sigma_per, sigma_par, b1, sigma_v, bao_damping = True, integration = 'Simps'):
+    def get_anisotropic_pk(self, b1, sigma_v, bao_damping = True, integration = 'Simps'):
         ''' Returns anisotropic power spectra, with dimensions [redshift, k]'''
 
         # Generate a CAMB pk, and reshape it into [z,k,mu] shape
@@ -116,6 +131,10 @@ class PK_Calculator:
         fog = self.fog_factor(sigma_v)
         
         if bao_damping:
+            ''' Formulas for sigma_per and sigma_par from Lado'''
+            D = self.growth_factor()
+            sigma_per = 9.4*self.sigma8/0.9*D
+            sigma_par = (1 + self.f)*sigma_per
             self.Pmu = self.add_BAO_damping(sigma_per, sigma_par, b1)
         else:
             self.Pmu = self.pk_camb
