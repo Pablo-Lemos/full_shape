@@ -91,7 +91,7 @@ class PK_Calculator:
             kaiser = (bias+np.outer(self.f,self.mu**2))**2.
         else:
             # Using a bias parameter for each redshift
-            kaiser[:,np.newaxis] = (bias+np.outer(self.f,self.mu**2))**2.
+            kaiser = (bias[:,np.newaxis]+np.outer(self.f,self.mu**2))**2.
         return kaiser[:,np.newaxis, :]
 
     def fog_factor(self, sigma_v):
@@ -100,20 +100,23 @@ class PK_Calculator:
         logfog = np.einsum('i, jk -> ijk', self.f, temp)
         return np.exp(-(logfog)**2.)
 
-    def calculate_BAO_damping(self, sigma_per, sigma_par):
+    def calculate_BAO_damping(self, sigma_perp, sigma_par):
         ''' Calculate the BAO damping factor'''
-        mu = np.reshape(self.mu, [1,1,-1])
+        #mu = np.reshape(self.mu, [1,1,-1])
         k = np.reshape(self.k, [1,-1,1])
-        logdamp = k**2/2*(mu**2*sigma_par**2 + (1 - mu**2)*sigma_per**2)
+        # Reshape mu^2*sigma_par^2 and (1-mu^2)*sigma_perp into shape [z,k,mu]
+        spar_factor = np.outer(sigma_par**2, self.mu**2)[:,np.newaxis,:]
+        sperp_factor = np.outer(sigma_perp, (1 - self.mu**2))[:,np.newaxis,:]
+        logdamp = k**2/2*(spar_factor + sperp_factor)
         return np.exp(-logdamp)
 
-    def add_BAO_damping(self, sigma_per, sigma_par):
+    def add_BAO_damping(self, sigma_perp, sigma_par):
         ''' Add BAO damping to a CAMB power sectrum'''
         ps = np.empty([len(self.zs), len(self.k), 1])
         for (i,pk) in enumerate(self.pk_camb[:,:,0]):
             ps[i, :, 0] = minimize_smooth_pk(self.k, pk)
         pnl = self.pk_camb - ps
-        bao_damp_factor = self.calculate_BAO_damping(sigma_per, sigma_par)
+        bao_damp_factor = self.calculate_BAO_damping(sigma_perp, sigma_par)
         pnl = np.einsum('ijk, ijk -> ijk', pnl, bao_damp_factor)
         pnl *= bao_damp_factor
         return pnl + ps
@@ -134,11 +137,11 @@ class PK_Calculator:
         fog = self.fog_factor(sigma_v)
         
         if bao_damping:
-            ''' Formulas for sigma_per and sigma_par from Lado'''
+            ''' Formulas for sigma_perp and sigma_par from Lado'''
             D = self.growth_factor()
-            sigma_per = 9.4*self.sigma8/0.9*D
-            sigma_par = (1 + self.f)*sigma_per
-            self.Pmu = self.add_BAO_damping(sigma_per, sigma_par)
+            sigma_perp = 9.4*self.sigma8/0.9*D
+            sigma_par = (1 + self.f)*sigma_perp
+            self.Pmu = self.add_BAO_damping(sigma_perp, sigma_par)
         else:
             self.Pmu = self.pk_camb
         self.Pmu = fog*kaiser*self.Pmu
@@ -177,8 +180,8 @@ class PK_Calculator:
 
         if (isinstance(vol, float) or isinstance(vol, int)) and num_z > 1:
             # Using same volume for all redshift bins (wrong)
-            print("WARNING: You are using the same volume for all tomographic' \
-                 'bins, you should use an array or list for 'vol'. ")
+            print("WARNING: You are using the same volume for all tomographic bins.')
+            print("You should use an array or list for 'vol'. ")
             vol = vol*np.ones(num_z)
 
         # Calculate k_min and k_max, the edges of the k bins
