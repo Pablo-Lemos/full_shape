@@ -186,8 +186,8 @@ class PK_Calculator:
 
         # Same for the redshift
         if num_z > 1:
-            dk = self.z[1] - self.z[0]
-            z_edges = np.concatenate([[self.z[0] - dz/2.], self.z + dz/2.])
+            dz = self.zs[1] - self.zs[0]
+            z_edges = np.concatenate([[self.zs[0] - dz/2.], self.zs + dz/2.])
             chi_edges = self.results.comoving_radial_distance(z_edges)
             vol = 4*np.pi/3*(chi_edges[1:]**3 - chi_edges[:-1]**3)
             z_max = z_edges[1:]

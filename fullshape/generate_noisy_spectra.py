@@ -25,7 +25,7 @@ if __name__ == '__main__':
     pk_calc.get_anisotropic_pk(b1, sigma_v,  bao_damping = False)
 
     # Generate a noisy realisation
-    pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4, vol = 1e9)
+    pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4)
 
     cwd = os.path.realpath(__file__)[:-25]
     np.save(cwd + '/simulated_data/k_bins', pk_calc.k)
