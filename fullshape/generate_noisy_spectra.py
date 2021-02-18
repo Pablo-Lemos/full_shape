@@ -9,13 +9,11 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 if __name__ == '__main__':
     # Define value of nuisance parameters
-    b1 = 2.
-    sigma_v = 0.
-    sigma_per = 10.
-    sigma_par = 10.
+    b1 = [1., 2.]
+    sigma_v = [5., 4.]
 
     # Initiate anisotropic pk calculator
-    pk_calc = PK_Calculator(zs = [0.5], mink=1e-4, maxk = 0.5, num_k = 50, hunits = False)
+    pk_calc = PK_Calculator(zs = [0.1, 0.5], mink=1e-4, maxk = 0.5, num_k = 50, hunits = False)
 
     # Set a cosmology
     pk_calc.set_cosmology(As=2.142e-9, ns=0.9667, H0=67.36, ombh2=0.02230, 

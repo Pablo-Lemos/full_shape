@@ -91,13 +91,16 @@ class PK_Calculator:
             kaiser = (bias+np.outer(self.f,self.mu**2))**2.
         else:
             # Using a bias parameter for each redshift
+            if isinstance(bias, list):
+                bias = np.array(bias)
             kaiser = (bias[:,np.newaxis]+np.outer(self.f,self.mu**2))**2.
         return kaiser[:,np.newaxis, :]
 
-    def fog_factor(self, sigma_v):
+    def fog_factor(self, sigma_fog):
         ''' Calculate the Fingers of God factor'''
-        temp = sigma_v*np.outer(self.k, self.mu)
-        logfog = np.einsum('i, jk -> ijk', self.f, temp)
+        temp = np.outer(self.k, self.mu)
+        # Should work for either scalar or vector sigma_fog
+        logfog = np.einsum('i, jk -> ijk', self.f*sigma_fog, temp)
         return np.exp(-(logfog)**2.)
 
     def calculate_BAO_damping(self, sigma_perp, sigma_par):
@@ -121,7 +124,7 @@ class PK_Calculator:
         pnl *= bao_damp_factor
         return pnl + ps
 
-    def get_anisotropic_pk(self, bias, sigma_v, bao_damping = True, integration = 'Simps'):
+    def get_anisotropic_pk(self, bias, sigma_fog, bao_damping = True, integration = 'Simps'):
         ''' Returns anisotropic power spectra, with dimensions [redshift, k]'''
 
         # Generate a CAMB pk, and reshape it into [z,k,mu] shape
@@ -134,7 +137,7 @@ class PK_Calculator:
             raise
 
         kaiser = self.kaiser_factor(bias)
-        fog = self.fog_factor(sigma_v)
+        fog = self.fog_factor(sigma_fog)
         
         if bao_damping:
             ''' Formulas for sigma_perp and sigma_par from Lado'''

@@ -28,9 +28,7 @@ def generate_pk_for_tracer(zs, name, bias_factor, sigma_v, path, noisy = False):
     pk_calc.get_anisotropic_pk(bias, sigma_v,  bao_damping = True)
 
     # Generate a noisy realisation
-    #TODO Vol is a redshift dependent parameter, that depends on the cosmology, 
-    #TODO zmin and zmax. Need to implement it.
-    pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4, vol = 1e9)
+    pk_noisy, cov = pk_calc.generate_noisy(nave = 1e-4)
 
     np.save(path + 'k_bins', pk_calc.k)
     np.save(path + 'cov_' + name, cov)
@@ -50,9 +48,9 @@ if __name__ == '__main__':
 
     path = '/Users/Pablo/Code/full_shape_external/fullshape/simulated_data/desi_forecast/'
 
-    generate_pk_for_tracer(z_lrg, name = 'lrg', bias_factor= 0.84, sigma_v = 0, 
+    generate_pk_for_tracer(z_lrg, name = 'lrg', bias_factor= 0.84, sigma_v = 5., 
                             path=path, noisy = False)
-    generate_pk_for_tracer(z_elg, name = 'elg', bias_factor= 1.7, sigma_v = 0, 
+    generate_pk_for_tracer(z_elg, name = 'elg', bias_factor= 1.7, sigma_v = 4., 
                             path=path, noisy = False)
-    generate_pk_for_tracer(z_qso, name = 'qso', bias_factor= 1.2, sigma_v = 0, 
+    generate_pk_for_tracer(z_qso, name = 'qso', bias_factor= 1.2, sigma_v = 3., 
                             path=path, noisy = False)

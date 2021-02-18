@@ -3,6 +3,9 @@ path: null
 l_max: null
 
 zs: [0.5]
+redshift_dependent_bias: True
+redshift_dependent_FoG: True
+
 k_bins_file: simulated_data/k_bins.npy
 pk_data_file: simulated_data/pk_noisy.npy
 pk_cov_file: simulated_data/cov.npy
@@ -23,6 +26,6 @@ params:
     proposal: 0.1
     latex: 'b_1'
 
-  sigma_v: 0.
+  sigma_fog_1: 0.
 
     
