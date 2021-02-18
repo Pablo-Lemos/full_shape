@@ -55,10 +55,10 @@ class PK_Calculator:
         pars.InitPower.set_params(As=As, ns=ns, r=0)
 
         pars.set_matter_power(redshifts=self.zs, kmax=2.0)
-        results = camb.get_results(pars)
+        self.results = camb.get_results(pars)
         #print(results.get_fsigma8(),results.get_sigma8())
-        self.f = results.get_fsigma8()/results.get_sigma8()[0]
-        self.sigma8 = results.get_sigma8_0()
+        self.f = self.results.get_fsigma8()/self.results.get_sigma8()[0]
+        self.sigma8 = self.results.get_sigma8_0()
 
         if self.hunits:
             self.PK = camb.get_matter_power_interpolator(pars, nonlinear=False, 
@@ -163,7 +163,7 @@ class PK_Calculator:
             print("Integration must be either 'Simps' or 'Trapz' ")
             raise
 
-    def generate_noisy(self, nave, vol, integration = 'Simps'):
+    def generate_noisy(self, nave, integration = 'Simps'):
         ''' Generate a noisy realization of the anisotropic power spectrum. 
         Returns a power spectrum and covariance. '''
 
@@ -178,17 +178,23 @@ class PK_Calculator:
         num_z = len(self.zs)
         num_mu = len(self.mu)        
 
-        if (isinstance(vol, float) or isinstance(vol, int)) and num_z > 1:
-            # Using same volume for all redshift bins (wrong)
-            print("WARNING: You are using the same volume for all tomographic bins.')
-            print("You should use an array or list for 'vol'. ")
-            vol = vol*np.ones(num_z)
-
         # Calculate k_min and k_max, the edges of the k bins
         dk = self.k[1] - self.k[0]
         k_edges = np.concatenate([[self.k[0] - dk/2.], self.k + dk/2.])
         k_max = k_edges[1:]
         k_min = k_edges[:-1]
+
+        # Same for the redshift
+        if num_z > 1:
+            dk = self.z[1] - self.z[0]
+            z_edges = np.concatenate([[self.z[0] - dz/2.], self.z + dz/2.])
+            chi_edges = self.results.comoving_radial_distance(z_edges)
+            vol = 4*np.pi/3*(chi_edges[1:]**3 - chi_edges[:-1]**3)
+            z_max = z_edges[1:]
+            z_min = z_edges[:-1]
+        else:
+            print('Because there is only one redshift, I am considering an infinite volume for the covariance calculation')
+            vol = 4*np.pi/3*self.results.comoving_radial_distance(np.infty)
 
         l0 = self.mu
         l2 = get_legendre_2(l0)
